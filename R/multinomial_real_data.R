@@ -60,13 +60,39 @@ data.use <- data.use[,colSums(data.use)>0]
 #################################################################################################################
 # binomial model 
 #################################################################################################################
+binom_model <- function(N_trials=1, #number of samples from binomial distribution to consider currently set to 1
+                N, #total count for binomial distribution
+                z, # number of tracers counted
+                nr.tracer, # total number of tracers added to the sample
+                model.path, # where is the JAGS model code saved
+                model_binom, # name of the binomial model code
+                n_iter1, # number of iterations for binomial model
+                thin1, #thinning for binomial model
+                nchain1){ #number of chains for binomial model
+                
 
+  jags.data.binom = list(N_trials = N_trials,N = N, z = z)
+  modjags.binom <-jags.model(file = paste(model.path,model_binom,sep=''),data=jags.data.binom,n.chains = nchain1)
+  samples.binom <- coda.samples(modjags.binom,variable.names=c('theta'),n.iter = n_iter1,thin=thin1)
+  plot(samples.binom)
+  
+  prob.tracer <- unlist(samples.binom) 
+  pred.spore <- round(nr.tracer*(1-prob.tracer)/prob.tracer)
+  par(mfrow=c(1,1))
+  hist(pred.spore,nclass=15)
+  
+  output <- data.frame(probability_tracer =prob.tracer,
+                 pred_nr_spores = pred.spore)
+}
+##################################################################################################################
+# combination of binomial and multinomial model
+##################################################################################################################
 
 bin_multinom <- function(N_trials=1, #number of samples from binomial distribution to consider currently set to 1
                          N, #total count for binomial distribution
                          z, # number of tracers counted
                          nr.tracer, # total number of tracers added to the sample
-                         N_sample=1, # number of samples from ultinomial distribution to consider
+                         N_sample=1, # number of samples from multinomial distribution to consider
                          y, #vector of counted spores
                          K, #number of taxa counted
                          N_multinom, # total spores counted
@@ -138,7 +164,7 @@ bin_multinom <- function(N_trials=1, #number of samples from binomial distributi
   #make output
   output <- list(probability_tracer =prob.tracer,
                  pred_nr_spores = pred.spore,
-                 prob_mult_spores =  prob_multinom )
+                 prob_mult_spores =  prob_multinom)
 }
 
 
