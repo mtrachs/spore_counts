@@ -29,6 +29,17 @@ cat('
     ',fill = TRUE)
 sink()
 
+sink(paste(model.path,"/neg_binom.txt",sep=''))
+cat('
+    model {
+	        for (i in 1:N_trials) {
+            r[i] ~ dnegbin(theta , z[i])
+	        }
+	        theta  ~ dbeta( 1 , 1 )
+          }
+    ',fill = TRUE)
+sink()
+
 
 sink(paste(model.path,"/multinom.txt",sep=''))
 cat('
@@ -84,6 +95,36 @@ binom_model <- function(N_trials=1, #number of samples from binomial distributio
   output <- data.frame(probability_tracer =prob.tracer,
                  pred_nr_spores = pred.spore)
 }
+
+######################################################################################################################
+# negative binomial model
+######################################################################################################################
+
+neg_binom_model <- function(N_trials=1, #number of samples from binomial distribution to consider currently set to 1
+                        r, #number of spores counted
+                        z, # number of tracers counted
+                        nr.tracer, # total number of tracers added to the sample
+                        model.path, # where is the JAGS model code saved
+                        model_neg_binom, # name of the binomial model code
+                        n_iter1, # number of iterations for binomial model
+                        thin1, #thinning for binomial model
+                        nchain1){ #number of chains for binomial model
+  
+  
+  jags.data.neg.binom = list(N_trials = N_trials,r = r, z = z)
+  modjags.neg.binom <-jags.model(file = paste(model.path,model_neg_binom,sep=''),data=jags.data.neg.binom,n.chains = nchain1)
+  samples.neg.binom <- coda.samples(modjags.neg.binom,variable.names=c('theta'),n.iter = n_iter1,thin=thin1)
+  plot(samples.neg.binom)
+  
+  prob.tracer <- unlist(samples.neg.binom) 
+  pred.spore <- round(nr.tracer*(1-prob.tracer)/prob.tracer)
+  par(mfrow=c(1,1))
+  hist(pred.spore,nclass=15)
+  
+  output <- data.frame(probability_tracer =prob.tracer,
+                       pred_nr_spores = pred.spore)
+}
+
 ##################################################################################################################
 # combination of binomial and multinomial model
 ##################################################################################################################
@@ -188,15 +229,4 @@ test <- bin_multinom(N_trials = 1,
          nchain1=3,
          nchain2=3)
 
-
-
-
-
-
-
-
-
-
-
-
-
+##
