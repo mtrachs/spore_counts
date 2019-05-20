@@ -4,11 +4,11 @@ require(rjags)
 wd.path <- '~/spore_counts/'
 setwd(wd.path)
 
-data.loc <- 'data'
+data.loc <- 'data/'
 
-model.path <-  'jags_code'
+model.path <-  'jags_code/'
 
-data <- read.csv(paste0(data.loc,'/spore_counts.csv'),header=TRUE)
+data <- read.csv(paste0(data.loc,'spore_counts.csv'),header=TRUE)
 
 
 
@@ -209,8 +209,40 @@ bin_multinom <- function(N_trials=1, #number of samples from binomial distributi
 }
 
 
+######################################################################################################################
+# only multinomial model
+######################################################################################################################
+multinom <- function(N_sample=1, # number of samples from multinomial distribution to consider
+                     y, #vector of counted spores
+                     K, #number of taxa counted
+                     N_multinom, # total spores counted
+                     model.path, # where is the JAGS model code saved
+                     model_multinom, # name of the multinomial model code
+                     n_iter2,
+                     thin2,
+                     nchain2){
 
+  jags.data.multinom = list(N_sample = N_sample,y = y, K = K,N_multinom = N_multinom)
 
+  modjags.multinom <-jags.model(file = paste(model.path, model_multinom,sep=''),data=jags.data.multinom,n.chains = nchain2)
+# sample from the posterior
+  samples.multinom <- coda.samples(modjags.multinom,variable.names=c('q'),n.iter = n_iter2,thin=thin2)
+  #plot(samples.multinom)
+  
+  if(length(samples.multinom)>1){
+    prob_multinom <- rep(NA,ncol(samples.multinom[[1]])) 
+    
+    for(i in 1:length(samples.multinom)){
+      prob_multinom <- rbind(prob_multinom,samples.multinom[[i]])
+    }
+    
+    prob_multinom <- prob_multinom[-1,] 
+  }else{
+    prob_multinom <- samples.multinom[[1]]
+  }
+  prob_multinom
+}
+####################################################################################################################
 test <- bin_multinom(N_trials = 1,
          N = sum(data.use[3,]),
          z = data.use[3,ncol(data.use)],
@@ -229,4 +261,15 @@ test <- bin_multinom(N_trials = 1,
          nchain1=3,
          nchain2=3)
 
-##
+
+
+
+
+
+
+
+
+
+
+
+
